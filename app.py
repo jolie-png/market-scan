@@ -25,6 +25,64 @@ if 'analyzer' not in st.session_state:
 if 'visualizer' not in st.session_state:
     st.session_state.visualizer = CompetitorVisualizer()
 
+def find_competitor_websites(company_name):
+    """Find competitor websites for a given company"""
+    
+    # Predefined competitor mappings for common companies
+    competitor_db = {
+        'salesforce': {
+            'HubSpot': 'https://hubspot.com',
+            'Pipedrive': 'https://pipedrive.com',
+            'Zoho CRM': 'https://zoho.com/crm',
+            'Microsoft Dynamics': 'https://dynamics.microsoft.com'
+        },
+        'hubspot': {
+            'Salesforce': 'https://salesforce.com',
+            'Marketo': 'https://marketo.com',
+            'Pardot': 'https://pardot.com',
+            'Mailchimp': 'https://mailchimp.com'
+        },
+        'slack': {
+            'Microsoft Teams': 'https://teams.microsoft.com',
+            'Discord': 'https://discord.com',
+            'Zoom': 'https://zoom.us',
+            'Google Meet': 'https://meet.google.com'
+        },
+        'zoom': {
+            'Microsoft Teams': 'https://teams.microsoft.com',
+            'Google Meet': 'https://meet.google.com',
+            'Webex': 'https://webex.com',
+            'GoToMeeting': 'https://gotomeeting.com'
+        },
+        'shopify': {
+            'WooCommerce': 'https://woocommerce.com',
+            'Magento': 'https://magento.com',
+            'BigCommerce': 'https://bigcommerce.com',
+            'Squarespace': 'https://squarespace.com'
+        },
+        'stripe': {
+            'PayPal': 'https://paypal.com',
+            'Square': 'https://square.com',
+            'Adyen': 'https://adyen.com',
+            'Braintree': 'https://braintreepayments.com'
+        }
+    }
+    
+    # Try to find competitors
+    company_lower = company_name.lower()
+    
+    for key, competitors in competitor_db.items():
+        if key in company_lower or company_lower in key:
+            return competitors
+    
+    # Default tech competitors if no specific mapping found
+    return {
+        'Microsoft': 'https://microsoft.com',
+        'Google': 'https://google.com',
+        'Amazon': 'https://amazon.com',
+        'Apple': 'https://apple.com'
+    }
+
 st.title("🔍 Market Intelligence Platform")
 st.markdown("**Enter a company name to get comprehensive market analysis, competitor insights, and pricing analytics**")
 
@@ -182,64 +240,6 @@ if st.button("🚀 Analyze Market", type="primary") and company_name:
             file_name=f"{company_name}_market_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
             mime="text/csv"
         )
-
-def find_competitor_websites(company_name):
-    """Find competitor websites for a given company"""
-    
-    # Predefined competitor mappings for common companies
-    competitor_db = {
-        'salesforce': {
-            'HubSpot': 'https://hubspot.com',
-            'Pipedrive': 'https://pipedrive.com',
-            'Zoho CRM': 'https://zoho.com/crm',
-            'Microsoft Dynamics': 'https://dynamics.microsoft.com'
-        },
-        'hubspot': {
-            'Salesforce': 'https://salesforce.com',
-            'Marketo': 'https://marketo.com',
-            'Pardot': 'https://pardot.com',
-            'Mailchimp': 'https://mailchimp.com'
-        },
-        'slack': {
-            'Microsoft Teams': 'https://teams.microsoft.com',
-            'Discord': 'https://discord.com',
-            'Zoom': 'https://zoom.us',
-            'Google Meet': 'https://meet.google.com'
-        },
-        'zoom': {
-            'Microsoft Teams': 'https://teams.microsoft.com',
-            'Google Meet': 'https://meet.google.com',
-            'Webex': 'https://webex.com',
-            'GoToMeeting': 'https://gotomeeting.com'
-        },
-        'shopify': {
-            'WooCommerce': 'https://woocommerce.com',
-            'Magento': 'https://magento.com',
-            'BigCommerce': 'https://bigcommerce.com',
-            'Squarespace': 'https://squarespace.com'
-        },
-        'stripe': {
-            'PayPal': 'https://paypal.com',
-            'Square': 'https://square.com',
-            'Adyen': 'https://adyen.com',
-            'Braintree': 'https://braintreepayments.com'
-        }
-    }
-    
-    # Try to find competitors
-    company_lower = company_name.lower()
-    
-    for key, competitors in competitor_db.items():
-        if key in company_lower or company_lower in key:
-            return competitors
-    
-    # Default tech competitors if no specific mapping found
-    return {
-        'Microsoft': 'https://microsoft.com',
-        'Google': 'https://google.com',
-        'Amazon': 'https://amazon.com',
-        'Apple': 'https://apple.com'
-    }
 
 # Footer
 st.markdown("---")
