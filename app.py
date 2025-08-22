@@ -14,7 +14,8 @@ import time
 st.set_page_config(
     page_title="Market Intelligence",
     page_icon="🔍",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 # Initialize session state
