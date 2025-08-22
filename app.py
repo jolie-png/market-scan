@@ -1,25 +1,23 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from modules.scraper import CompetitorScraper
 from modules.analyzer import CompetitorAnalyzer
 from modules.visualizer import CompetitorVisualizer
-from modules.data_manager import DataManager
-from utils.helpers import format_currency, safe_url_parse
+from utils.helpers import format_currency
+import time
 
 # Page configuration
 st.set_page_config(
-    page_title="Market Intelligence Platform",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="Market Intelligence",
+    page_icon="🔍",
+    layout="wide"
 )
 
 # Initialize session state
-if 'data_manager' not in st.session_state:
-    st.session_state.data_manager = DataManager()
 if 'scraper' not in st.session_state:
     st.session_state.scraper = CompetitorScraper()
 if 'analyzer' not in st.session_state:
@@ -27,164 +25,227 @@ if 'analyzer' not in st.session_state:
 if 'visualizer' not in st.session_state:
     st.session_state.visualizer = CompetitorVisualizer()
 
-# Sidebar navigation
-st.sidebar.title("Market Intelligence Platform")
-st.sidebar.markdown("---")
+st.title("🔍 Market Intelligence Platform")
+st.markdown("**Enter a company name to get comprehensive market analysis, competitor insights, and pricing analytics**")
 
-# Navigation
-page = st.sidebar.selectbox(
-    "Navigate to:",
-    ["Dashboard", "Competitor Analysis", "Pricing Comparison", "Trend Analytics", "Data Management"]
-)
+# Simple input interface
+company_name = st.text_input("Company Name", placeholder="e.g., Salesforce, HubSpot, Slack")
 
-# Quick actions sidebar
-st.sidebar.markdown("### Quick Actions")
-if st.sidebar.button("🔄 Refresh All Data"):
-    with st.spinner("Refreshing competitor data..."):
-        st.session_state.data_manager.refresh_all_data()
-    st.sidebar.success("Data refreshed!")
-
-if st.sidebar.button("📥 Export Data"):
-    data = st.session_state.data_manager.get_all_data()
-    if not data.empty:
-        csv = data.to_csv(index=False)
-        st.sidebar.download_button(
-            label="Download CSV",
+if st.button("🚀 Analyze Market", type="primary") and company_name:
+    with st.spinner(f"Analyzing market for {company_name}..."):
+        
+        # Step 1: Find competitor websites
+        st.info("🔍 Finding competitor websites...")
+        competitor_urls = find_competitor_websites(company_name)
+        
+        if not competitor_urls:
+            st.error("No competitor websites found. Try a different company name.")
+            st.stop()
+        
+        st.success(f"Found {len(competitor_urls)} competitors")
+        
+        # Step 2: Scrape competitor data
+        st.info("📊 Scraping competitor data...")
+        all_data = []
+        
+        progress_bar = st.progress(0)
+        for i, (comp_name, url) in enumerate(competitor_urls.items()):
+            try:
+                data = st.session_state.scraper.scrape_competitor(url, comp_name, "Technology")
+                if data:
+                    all_data.append(data)
+                    st.write(f"✅ Scraped {comp_name}")
+                else:
+                    st.write(f"⚠️ Failed to scrape {comp_name}")
+            except Exception as e:
+                st.write(f"❌ Error with {comp_name}: {str(e)}")
+            
+            progress_bar.progress((i + 1) / len(competitor_urls))
+            time.sleep(1)  # Rate limiting
+        
+        if not all_data:
+            st.error("No competitor data could be scraped. Please try again.")
+            st.stop()
+        
+        # Convert to DataFrame
+        df_data = []
+        for competitor in all_data:
+            if competitor.get('products'):
+                for product in competitor['products']:
+                    row = competitor.copy()
+                    row['product_name'] = product
+                    row.pop('products', None)
+                    df_data.append(row)
+            else:
+                row = competitor.copy()
+                row['product_name'] = f"{competitor['company']} Service"
+                row.pop('products', None)
+                df_data.append(row)
+        
+        df = pd.DataFrame(df_data)
+        
+        # Step 3: Generate comprehensive analysis
+        st.success("🤖 Generating AI insights...")
+        
+        # Display results
+        st.markdown("---")
+        st.header(f"📊 Market Analysis for {company_name}")
+        
+        # Key metrics
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Competitors Found", len(df['company'].unique()))
+        
+        with col2:
+            if 'price' in df.columns and not df['price'].isna().all():
+                avg_price = df['price'].mean()
+                st.metric("Average Price", format_currency(avg_price))
+            else:
+                st.metric("Average Price", "N/A")
+        
+        with col3:
+            st.metric("Products/Services", len(df))
+        
+        with col4:
+            categories = len(df['category'].unique()) if 'category' in df.columns else 1
+            st.metric("Categories", categories)
+        
+        # Market overview visualization
+        st.subheader("🗺️ Market Overview")
+        market_fig = st.session_state.visualizer.create_market_overview(df)
+        st.plotly_chart(market_fig, use_container_width=True)
+        
+        # Competitive positioning
+        st.subheader("🎯 Competitive Positioning")
+        pos_fig = st.session_state.visualizer.create_competitor_map(df)
+        st.plotly_chart(pos_fig, use_container_width=True)
+        
+        # Pricing analysis (if available)
+        if 'price' in df.columns and not df['price'].isna().all():
+            st.subheader("💰 Pricing Analysis")
+            price_fig = st.session_state.visualizer.create_pricing_analysis(df)
+            st.plotly_chart(price_fig, use_container_width=True)
+        
+        # AI-powered insights
+        st.subheader("🧠 AI Market Insights")
+        try:
+            insights = st.session_state.analyzer.generate_competitive_insights(df)
+            positioning = st.session_state.analyzer.analyze_competitive_positioning(df)
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if insights.get('opportunities'):
+                    st.success("🚀 **Market Opportunities**")
+                    for opp in insights['opportunities'][:5]:
+                        st.write(f"• {opp}")
+                
+                if positioning and positioning.get('market_opportunities'):
+                    st.success("💎 **Strategic Opportunities**")
+                    for opp in positioning['market_opportunities'][:3]:
+                        st.write(f"• {opp}")
+            
+            with col2:
+                if insights.get('threats'):
+                    st.warning("⚠️ **Competitive Threats**")
+                    for threat in insights['threats'][:5]:
+                        st.write(f"• {threat}")
+                
+                if positioning and positioning.get('competitive_threats'):
+                    st.warning("🎯 **Strategic Threats**")
+                    for threat in positioning['competitive_threats'][:3]:
+                        st.write(f"• {threat}")
+            
+            # Market analysis summary
+            if positioning and positioning.get('pricing_analysis'):
+                st.info("📈 **Pricing Strategy Analysis**")
+                st.write(positioning['pricing_analysis'])
+                
+        except Exception as e:
+            st.error(f"AI analysis failed: {str(e)}")
+        
+        # Competitor details table
+        st.subheader("🏢 Competitor Details")
+        display_df = df[['company', 'product_name', 'price', 'category']].copy()
+        if 'price' in display_df.columns:
+            display_df['price'] = display_df['price'].apply(lambda x: format_currency(x) if pd.notna(x) else 'N/A')
+        
+        st.dataframe(display_df, use_container_width=True)
+        
+        # Export option
+        st.subheader("📤 Export Results")
+        csv = df.to_csv(index=False)
+        st.download_button(
+            label="📄 Download Full Report (CSV)",
             data=csv,
-            file_name=f"market_intelligence_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            file_name=f"{company_name}_market_analysis_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
             mime="text/csv"
         )
-    else:
-        st.sidebar.warning("No data available to export")
 
-# Main content based on selected page
-if page == "Dashboard":
-    st.title("📊 Market Intelligence Dashboard")
+def find_competitor_websites(company_name):
+    """Find competitor websites for a given company"""
     
-    # Key metrics
-    col1, col2, col3, col4 = st.columns(4)
+    # Predefined competitor mappings for common companies
+    competitor_db = {
+        'salesforce': {
+            'HubSpot': 'https://hubspot.com',
+            'Pipedrive': 'https://pipedrive.com',
+            'Zoho CRM': 'https://zoho.com/crm',
+            'Microsoft Dynamics': 'https://dynamics.microsoft.com'
+        },
+        'hubspot': {
+            'Salesforce': 'https://salesforce.com',
+            'Marketo': 'https://marketo.com',
+            'Pardot': 'https://pardot.com',
+            'Mailchimp': 'https://mailchimp.com'
+        },
+        'slack': {
+            'Microsoft Teams': 'https://teams.microsoft.com',
+            'Discord': 'https://discord.com',
+            'Zoom': 'https://zoom.us',
+            'Google Meet': 'https://meet.google.com'
+        },
+        'zoom': {
+            'Microsoft Teams': 'https://teams.microsoft.com',
+            'Google Meet': 'https://meet.google.com',
+            'Webex': 'https://webex.com',
+            'GoToMeeting': 'https://gotomeeting.com'
+        },
+        'shopify': {
+            'WooCommerce': 'https://woocommerce.com',
+            'Magento': 'https://magento.com',
+            'BigCommerce': 'https://bigcommerce.com',
+            'Squarespace': 'https://squarespace.com'
+        },
+        'stripe': {
+            'PayPal': 'https://paypal.com',
+            'Square': 'https://square.com',
+            'Adyen': 'https://adyen.com',
+            'Braintree': 'https://braintreepayments.com'
+        }
+    }
     
-    data = st.session_state.data_manager.get_all_data()
+    # Try to find competitors
+    company_lower = company_name.lower()
     
-    with col1:
-        total_competitors = len(data['company'].unique()) if not data.empty else 0
-        st.metric("Total Competitors", total_competitors)
+    for key, competitors in competitor_db.items():
+        if key in company_lower or company_lower in key:
+            return competitors
     
-    with col2:
-        total_products = len(data) if not data.empty else 0
-        st.metric("Products Tracked", total_products)
-    
-    with col3:
-        recent_updates = len(data[data['last_updated'] >= datetime.now() - timedelta(days=7)]) if not data.empty else 0
-        st.metric("Recent Updates", recent_updates)
-    
-    with col4:
-        avg_price = data['price'].mean() if not data.empty and 'price' in data.columns else 0
-        st.metric("Avg Price", format_currency(avg_price))
-    
-    if not data.empty:
-        # Market overview chart
-        st.subheader("Market Overview")
-        fig = st.session_state.visualizer.create_market_overview(data)
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Recent competitor activities
-        st.subheader("Recent Competitor Activities")
-        recent_data = data.sort_values('last_updated', ascending=False).head(10)
-        for _, row in recent_data.iterrows():
-            with st.expander(f"{row['company']} - {row['product_name']}"):
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.write(f"**Price:** {format_currency(row.get('price', 0))}")
-                    st.write(f"**Category:** {row.get('category', 'N/A')}")
-                with col2:
-                    st.write(f"**Last Updated:** {row['last_updated'].strftime('%Y-%m-%d %H:%M')}")
-                    st.write(f"**Source:** {row.get('source_url', 'N/A')}")
-                
-                if 'summary' in row and pd.notna(row['summary']):
-                    st.write(f"**Summary:** {row['summary']}")
-    else:
-        st.info("No competitor data available. Use the 'Data Management' section to add competitor URLs.")
-
-elif page == "Competitor Analysis":
-    from pages.competitor_analysis import render_competitor_analysis
-    render_competitor_analysis()
-
-elif page == "Pricing Comparison":
-    from pages.pricing_comparison import render_pricing_comparison
-    render_pricing_comparison()
-
-elif page == "Trend Analytics":
-    from pages.trend_analytics import render_trend_analytics
-    render_trend_analytics()
-
-elif page == "Data Management":
-    st.title("🔧 Data Management")
-    
-    # Add new competitor
-    st.subheader("Add New Competitor")
-    with st.form("add_competitor"):
-        col1, col2 = st.columns(2)
-        with col1:
-            company_name = st.text_input("Company Name")
-            competitor_url = st.text_input("Competitor URL")
-        with col2:
-            category = st.text_input("Category")
-            notes = st.text_area("Notes")
-        
-        submitted = st.form_submit_button("Add Competitor")
-        if submitted and company_name and competitor_url:
-            if safe_url_parse(competitor_url):
-                with st.spinner(f"Scraping {company_name}..."):
-                    try:
-                        result = st.session_state.scraper.scrape_competitor(competitor_url, company_name, category)
-                        if result:
-                            st.session_state.data_manager.add_competitor_data(result)
-                            st.success(f"Successfully added {company_name}!")
-                            st.rerun()
-                        else:
-                            st.error("Failed to scrape competitor data. Please check the URL.")
-                    except Exception as e:
-                        st.error(f"Error scraping competitor: {str(e)}")
-            else:
-                st.error("Please enter a valid URL")
-    
-    # Current competitors
-    st.subheader("Current Competitors")
-    data = st.session_state.data_manager.get_all_data()
-    if not data.empty:
-        # Display competitors table
-        display_data = data[['company', 'product_name', 'category', 'price', 'last_updated']].copy()
-        display_data['price'] = display_data['price'].apply(lambda x: format_currency(x) if pd.notna(x) else 'N/A')
-        display_data['last_updated'] = display_data['last_updated'].dt.strftime('%Y-%m-%d %H:%M')
-        
-        st.dataframe(display_data, use_container_width=True)
-        
-        # Bulk operations
-        st.subheader("Bulk Operations")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("🔄 Refresh All Competitor Data"):
-                with st.spinner("Refreshing all competitor data..."):
-                    st.session_state.data_manager.refresh_all_data()
-                st.success("All data refreshed!")
-                st.rerun()
-        
-        with col2:
-            if st.button("🗑️ Clear All Data"):
-                if st.checkbox("I understand this will delete all data"):
-                    st.session_state.data_manager.clear_all_data()
-                    st.success("All data cleared!")
-                    st.rerun()
-    else:
-        st.info("No competitors added yet. Add your first competitor above!")
+    # Default tech competitors if no specific mapping found
+    return {
+        'Microsoft': 'https://microsoft.com',
+        'Google': 'https://google.com',
+        'Amazon': 'https://amazon.com',
+        'Apple': 'https://apple.com'
+    }
 
 # Footer
 st.markdown("---")
 st.markdown(
     "<div style='text-align: center; color: #666;'>"
-    "Market Intelligence Platform | Powered by AI & Web Scraping"
+    "Market Intelligence Platform | Enter any company name to get instant competitive analysis"
     "</div>", 
     unsafe_allow_html=True
 )
