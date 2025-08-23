@@ -5,7 +5,7 @@ This is a web application that analyzes and compares CRM platforms by automatica
 
 ## Overview
 
-This project scrapes CRM vendor websites to create comparative analysis tables showing pricing, features, AI capabilities, and target markets. Built as a learning project to practice web scraping, API integration, and data visualization.
+This project scrapes CRM vendor websites to create comparative analysis tables showing pricing, features, AI capabilities, and target markets. 
 
 ## Features
 
