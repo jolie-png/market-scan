@@ -1,6 +1,7 @@
 # CRM Market Intelligence Platform
 
-A web application that analyzes and compares CRM platforms by automatically extracting pricing and feature data from vendor websites.
+Hi there :')
+This is a web application that analyzes and compares CRM platforms by automatically extracting pricing and feature data from vendor websites.
 
 ## Overview
 
@@ -42,7 +43,7 @@ streamlit run app.py --server.port 5000
 
 ## Usage
 
-1. Enter a CRM company name (e.g., "Salesforce")
+1. Enter a CRM company name (like "Salesforce")
 2. Click "Analyze CRM Market" 
 3. View the comparison table with pricing and features
 4. Sort by price or filter by target market
@@ -71,7 +72,3 @@ streamlit run app.py --server.port 5000
 ## Supported Platforms
 
 Salesforce, HubSpot, Pipedrive, Zoho CRM, Microsoft Dynamics 365, Freshsales, Copper, Close, Insightly, Monday.com
-
-## Note
-
-This project was created for educational purposes to demonstrate web scraping, data analysis, and visualization skills. All data is extracted from publicly available vendor websites.
