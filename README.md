@@ -49,26 +49,3 @@ streamlit run app.py --server.port 5000
 4. Sort by price or filter by target market
 5. Export results as CSV if needed
 
-## Project Structure
-
-```
-├── app.py              # Main application
-├── modules/
-│   ├── scraper.py     # Web scraping logic
-│   ├── analyzer.py    # AI content analysis
-│   └── visualizer.py  # Chart generation
-└── utils/
-    └── helpers.py     # Utility functions
-```
-
-## Key Learning Outcomes
-
-- Web scraping techniques and challenges
-- API integration with OpenAI
-- Data visualization with Python
-- Building responsive web apps with Streamlit
-- Handling real-world data extraction problems
-
-## Supported Platforms
-
-Salesforce, HubSpot, Pipedrive, Zoho CRM, Microsoft Dynamics 365, Freshsales, Copper, Close, Insightly, Monday.com
