@@ -24,23 +24,6 @@ This project scrapes CRM vendor websites to create comparative analysis tables s
 - **Plotly** - Interactive charts and visualizations
 - **BeautifulSoup/Trafilatura** - Web scraping libraries
 
-## Installation
-
-1. Install dependencies:
-```bash
-pip install streamlit pandas plotly openai requests beautifulsoup4 trafilatura validators
-```
-
-2. Set up OpenAI API key:
-```bash
-export OPENAI_API_KEY="your-api-key-here"
-```
-
-3. Run the application:
-```bash
-streamlit run app.py --server.port 5000
-```
-
 ## Usage
 
 1. Enter a CRM company name (like "Salesforce")
